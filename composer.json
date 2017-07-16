@@ -1,6 +1,7 @@
 {
   "name": "rean/pdo-object",
   "description": "PDO base class for project",
+  "version": "1.0.0",
   "keywords": ["pdo", "mysql", "class"],
   "homepage": "http://www.reaburoa.com",
   "license": "MIT",
@@ -17,7 +18,6 @@
   "require": {
     "php": ">=5.4.0"
   },
-  "version": "1.0.0",
   "autoload": {
     "psr-4": {
       "Rain\\": "vendor/src/"
