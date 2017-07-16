@@ -1,5 +1,5 @@
 {
-  "name": "rean/pdo",
+  "name": "rean/pdo-object",
   "description": "PDO base class for project",
   "keywords": ["pdo", "mysql", "class"],
   "homepage": "http://www.reaburoa.com",
