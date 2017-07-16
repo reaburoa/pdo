@@ -1,0 +1,25 @@
+{
+  "name": "PDO class",
+  "description": "PDO base class for project",
+  "keywords": ["pdo", "mysql", "class"],
+  "homepage": "http://www.reaburoa.com",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Lei Zhang",
+      "homepage": "https://github.com/reaburoa/Component/tree/master/pdo",
+      "role": "Developer"
+    }
+  ],
+  "support": {
+    "email": "296875751@qq.com"
+  },
+  "require": {
+    "php": ">=5.4.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Rain": "src/"
+    }
+  }
+}
