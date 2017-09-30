@@ -20,7 +20,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Rain\\": "vendor/src/"
+      "Rean\\": "src/"
     }
   }
 }
