@@ -16,8 +16,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Rean\\MyPDO": "src/MyPDO",
-      "Rean\\PDOConnect" : "src/PDOConnect"
+      "Rean\\": "src/"
     }
   }
 }
