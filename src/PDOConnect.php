@@ -42,6 +42,11 @@ class PDOConnect
     private static $default_charset = 'utf8mb4';
 
     /**
+     * conf file dir
+     */
+    private static $conf_dir = dirname(dirname(__FILE__)).'/conf';
+
+    /**
      * PDO connect timeout default 5 seconds
      */
     private static $timeout = 5;
@@ -110,7 +115,7 @@ class PDOConnect
     private static function getConf()
     {
         if (empty(self::$origin_conf)) {
-            self::$origin_conf = require_once(CONF_PATH.'/conf.php');
+            self::$origin_conf = require_once(self::$conf_dir.'/conf.php');
         }
         if (!isset(self::$origin_conf[self::$cluster])) {
             throw new \Exception("Conf has no ".self::$cluster." cluster");
