@@ -98,6 +98,9 @@ class MyPDO
 
     private function format(array $value)
     {
+        if (!self::$data_format || !is_array(self::$data_format)) {
+            return $value;
+        }
         foreach (static::$data_format as $key => $val) {
             if (!isset($value[$key])) {
                 continue;
