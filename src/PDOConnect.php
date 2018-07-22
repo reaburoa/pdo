@@ -110,7 +110,7 @@ class PDOConnect
     private static function getConf()
     {
         if (empty(self::$origin_conf)) {
-            self::$origin_conf = require_once(dirname(dirname(__FILE__)).'/conf/conf.php');
+            self::$origin_conf = require_once(dirname(dirname(dirname(dirname(dirname(__FILE__))))).'/conf/conf.php');
         }
         if (!isset(self::$origin_conf[self::$cluster])) {
             throw new \Exception("Conf has no ".self::$cluster." cluster");
