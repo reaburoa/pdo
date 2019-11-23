@@ -437,7 +437,7 @@ class MyPDO
             }
             foreach ($value as $ke => $val) {
                 if (!isset($flip_operate[$ke])) {
-                    continue 1;
+                    continue;
                 }
                 if (isset($ar_values[$bind_key])) {
                     $same_key_i ++;
@@ -447,7 +447,7 @@ class MyPDO
                     case 'in':
                     case 'not in':
                         if (!is_array($val) || empty($val)) {
-                            continue 1;
+                            break;
                         }
                         $in_i = 0;
                         $in_params = [];
@@ -462,18 +462,18 @@ class MyPDO
                     case 'like':
                     case 'not like':
                         if (is_array($val) || empty($val)) {
-                            continue 1;
+                            break;
                         }
                         $ar_sql[self::AND_OP][] = "`{$key}` ".strtoupper($ke).' '.$bind_key;
                         $ar_values[$bind_key] = $val;
                         break;
                     default:
                         if (is_array($val) || empty($val)) {
-                            continue 1;
+                            break;
                         }
                         $ar_values[$bind_key] = $val;
                         $ar_sql[self::AND_OP][] = "`{$key}` {$ke} {$bind_key}";
-                        break 1;
+                        break;
                 }
             }
         }
