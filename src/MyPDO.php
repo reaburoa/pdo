@@ -469,7 +469,7 @@ class MyPDO
                         break;
                     default:
                         if (is_array($val) || empty($val)) {
-                            continue;
+                            continue 1;
                         }
                         $ar_values[$bind_key] = $val;
                         $ar_sql[self::AND_OP][] = "`{$key}` {$ke} {$bind_key}";
