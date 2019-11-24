@@ -1,10 +1,11 @@
 <?php
+
 namespace Rean;
 
 /**
  * PDO library
  */
-class MyPDO
+abstract class MyPDO
 {
     /**
      * model will operate database
@@ -36,8 +37,6 @@ class MyPDO
     const FIELD_DOUBLE = 'double';
 
     const DEFAULT_SELECT_FIELD = '*';
-
-    const DEFAULT_STRING_ENCODE = 'utf8';
 
     protected static $field_2_pdo_param = [
         self::FIELD_INT => \PDO::PARAM_INT,
@@ -73,6 +72,8 @@ class MyPDO
         return static::$cluster;
     }
 
+    abstract function getDbConf();
+
     protected function getDB()
     {
         if (strpos(static::$database, '?') === false) {
@@ -85,15 +86,16 @@ class MyPDO
             $database = substr_replace(static::$database, substr($hash, 0, $db_count), strlen(static::$database) - $db_count);
             $table = substr_replace(static::$table, substr($hash, 0, $tb_count), strlen(static::$table) - $tb_count);
         }
-        return '`'.$database.'`.`'.$table.'`';
+        return '`' . $database . '`.`' . $table . '`';
     }
 
     /**
      * @return \PDO
+     * @throws
      */
     private function getPDO()
     {
-        return PDOConnect::getInstance($this->getCluster(), $this->getHash())->getPDO();
+        return PDOConnect::getInstance($this->getDbConf(), $this->getCluster(), $this->getHash())->getPDO();
     }
 
     private function format(array $value)
@@ -105,7 +107,7 @@ class MyPDO
             if (!isset($value[$key])) {
                 continue;
             }
-            switch($val) {
+            switch ($val) {
                 case self::FIELD_STRING:
                     $value[$key] = (string)$value[$key];
                     break;
@@ -127,12 +129,12 @@ class MyPDO
             return false;
         }
 
-        $sql = "INSERT INTO ".$this->getDB();
+        $sql = "INSERT INTO " . $this->getDB();
         $bind_params = [];
         foreach ($param_values as $key => $value) {
-            $bind_params[':'.$key] = $value;
+            $bind_params[':' . $key] = $value;
         }
-        $sql .= "(`".implode("`,`", array_keys($param_values))."`) VALUES (".implode(",", array_keys($bind_params)).")";
+        $sql .= "(`" . implode("`,`", array_keys($param_values)) . "`) VALUES (" . implode(",", array_keys($bind_params)) . ")";
         return $this->execute($sql, $bind_params, 'insert');
     }
 
@@ -142,27 +144,27 @@ class MyPDO
         $update_values = [];
         $values_i = 0;
         foreach ($values as $key => $value) {
-            $values_i ++;
-            $tmp_key = ':'.$values_i;
-            $update_keys[] = '`'.$key.'`='.$tmp_key;
+            $values_i++;
+            $tmp_key = ':' . $values_i;
+            $update_keys[] = '`' . $key . '`=' . $tmp_key;
             $update_values[$tmp_key] = $value;
         }
         $update_string = implode(',', $update_keys);
         if (!$update_string) {
             return false;
         }
-        $sql = "UPDATE ".$this->getDB()." SET ".$update_string;
+        $sql = "UPDATE " . $this->getDB() . " SET " . $update_string;
         $format_cond = $this->formatCondition($cond);
         if ($format_cond && is_array($format_cond)) {
             $params_keys = [];
             foreach ($format_cond['where_values'] as $k => $val) {
-                $values_i ++;
-                $tmp_key = ':'.$values_i;
+                $values_i++;
+                $tmp_key = ':' . $values_i;
                 $params_keys[$k] = $tmp_key;
                 $update_values[$tmp_key] = $val;
             }
             if ($params_keys) {
-                $sql .= " WHERE ".str_replace(array_keys($params_keys), array_values($params_keys), $format_cond['where_sql']);
+                $sql .= " WHERE " . str_replace(array_keys($params_keys), array_values($params_keys), $format_cond['where_sql']);
             }
         }
         $format_order = $this->formatOrder($order);
@@ -170,7 +172,7 @@ class MyPDO
             $sql .= $format_order;
         }
         if ((int)$limit > 0) {
-            $sql .= ' LIMIT '.(int)$limit;
+            $sql .= ' LIMIT ' . (int)$limit;
         }
         $ret = $this->execute($sql, $update_values, 'exec');
         return $ret;
@@ -178,17 +180,17 @@ class MyPDO
 
     protected function delete(array $cond = [], array $order = [], $limit = 0)
     {
-        $sql = "DELETE FROM ".$this->getDB();
+        $sql = "DELETE FROM " . $this->getDB();
         $format_cond = $this->formatCondition($cond);
         if ($format_cond && isset($format_cond['where_sql']) && $format_cond['where_sql']) {
-            $sql .= " WHERE ".$format_cond['where_sql'];
+            $sql .= " WHERE " . $format_cond['where_sql'];
         }
         $format_order = $this->formatOrder($order);
         if ($format_order) {
             $sql .= $format_order;
         }
         if ((int)$limit > 0) {
-            $sql .= " LIMIT ".(int)$limit;
+            $sql .= " LIMIT " . (int)$limit;
         }
         $params = $format_cond && isset($format_cond['where_values']) ? $format_cond['where_values'] : [];
         $ret = $this->execute($sql, $params, 'exec');
@@ -198,17 +200,17 @@ class MyPDO
     protected function getAll(array $cond = [], array $order = [], $offset = 0, $limit = 0, array $field = [])
     {
         $format_field = $this->formatField($field);
-        $sql = "SELECT ".$format_field." FROM ".$this->getDB();
+        $sql = "SELECT " . $format_field . " FROM " . $this->getDB();
         $format_cond = $this->formatCondition($cond);
         if ($format_cond && isset($format_cond['where_sql']) && $format_cond['where_sql']) {
-            $sql .= " WHERE ".$format_cond['where_sql'];
+            $sql .= " WHERE " . $format_cond['where_sql'];
         }
         $format_order = $this->formatOrder($order);
         if ($format_order) {
             $sql .= $format_order;
         }
         if ((int)$limit > 0) {
-            $sql .= " LIMIT ".((int)$offset >= 0 ? (int)$offset : 0).",".(int)$limit;
+            $sql .= " LIMIT " . ((int)$offset >= 0 ? (int)$offset : 0) . "," . (int)$limit;
         }
         $params = $format_cond && isset($format_cond['where_values']) ? $format_cond['where_values'] : [];
         $ret = $this->execute($sql, $params, 'fetchAll');
@@ -218,10 +220,10 @@ class MyPDO
     protected function getOneRow(array $cond = [], array $order = [], array $field = [])
     {
         $format_field = $this->formatField($field);
-        $sql = "SELECT ".$format_field." FROM ".$this->getDB();
+        $sql = "SELECT " . $format_field . " FROM " . $this->getDB();
         $format_cond = $this->formatCondition($cond);
         if ($format_cond && isset($format_cond['where_sql']) && $format_cond['where_sql']) {
-            $sql .= " WHERE ".$format_cond['where_sql'];
+            $sql .= " WHERE " . $format_cond['where_sql'];
         }
         $format_order = $this->formatOrder($order);
         if ($format_order) {
@@ -237,10 +239,10 @@ class MyPDO
         if (!$field) {
             return false;
         }
-        $sql = "SELECT `{$field}` FROM ".$this->getDB();
+        $sql = "SELECT `{$field}` FROM " . $this->getDB();
         $format_cond = $this->formatCondition($cond);
         if ($format_cond && isset($format_cond['where_sql']) && $format_cond['where_sql']) {
-            $sql .= " WHERE ".$format_cond['where_sql'];
+            $sql .= " WHERE " . $format_cond['where_sql'];
         }
         $format_order = $this->formatOrder($order);
         if ($format_order) {
@@ -253,10 +255,10 @@ class MyPDO
 
     protected function count(array $cond = [])
     {
-        $sql = "SELECT COUNT(*) FROM ".$this->getDB();
+        $sql = "SELECT COUNT(*) FROM " . $this->getDB();
         $format_cond = $this->formatCondition($cond);
         if ($format_cond && isset($format_cond['where_sql']) && $format_cond['where_sql']) {
-            $sql .= " WHERE ".$format_cond['where_sql'];
+            $sql .= " WHERE " . $format_cond['where_sql'];
         }
         $params = $format_cond && isset($format_cond['where_values']) ? $format_cond['where_values'] : [];
         $ret = $this->execute($sql, $params, 'fetchColumn');
@@ -268,10 +270,10 @@ class MyPDO
         if (!$field) {
             return false;
         }
-        $sql = "SELECT SUM({$field}) FROM ".$this->getDB();
+        $sql = "SELECT SUM({$field}) FROM " . $this->getDB();
         $format_cond = $this->formatCondition($cond);
         if ($format_cond && isset($format_cond['where_sql']) && $format_cond['where_sql']) {
-            $sql .= " WHERE ".$format_cond['where_sql'];
+            $sql .= " WHERE " . $format_cond['where_sql'];
         }
         $params = $format_cond && isset($format_cond['where_values']) ? $format_cond['where_values'] : [];
         $ret = $this->execute($sql, $params, 'fetchColumn');
@@ -285,12 +287,12 @@ class MyPDO
         }
         $tmp_increment = [];
         foreach ($increment as $key => $value) {
-            $tmp_increment[] = "`{$key}`=`{$key}`+".(int)$value;
+            $tmp_increment[] = "`{$key}`=`{$key}`+" . (int)$value;
         }
-        $sql = "UPDATE ".$this->getDB()." SET ".implode(',', $tmp_increment);
+        $sql = "UPDATE " . $this->getDB() . " SET " . implode(',', $tmp_increment);
         $format_cond = $this->formatCondition($cond);
         if ($format_cond && isset($format_cond['where_sql']) && $format_cond['where_sql']) {
-            $sql .= " WHERE ".$format_cond['where_sql'];
+            $sql .= " WHERE " . $format_cond['where_sql'];
         }
         $params = $format_cond && isset($format_cond['where_values']) ? $format_cond['where_values'] : [];
         $ret = $this->execute($sql, $params, 'exec');
@@ -304,12 +306,12 @@ class MyPDO
         }
         $tmp_increment = [];
         foreach ($increment as $key => $value) {
-            $tmp_increment[] = "`{$key}`=`{$key}`-".(int)$value;
+            $tmp_increment[] = "`{$key}`=`{$key}`-" . (int)$value;
         }
-        $sql = "UPDATE ".$this->getDB()." SET ".implode(',', $tmp_increment);
+        $sql = "UPDATE " . $this->getDB() . " SET " . implode(',', $tmp_increment);
         $format_cond = $this->formatCondition($cond);
         if ($format_cond && isset($format_cond['where_sql']) && $format_cond['where_sql']) {
-            $sql .= " WHERE ".$format_cond['where_sql'];
+            $sql .= " WHERE " . $format_cond['where_sql'];
         }
         $params = $format_cond && isset($format_cond['where_values']) ? $format_cond['where_values'] : [];
         $ret = $this->execute($sql, $params, 'exec');
@@ -419,17 +421,17 @@ class MyPDO
                 foreach ($result['bind_where_values'] as $k => $v) {
                     $new_k = $k;
                     if (isset($ar_values[$k])) {
-                        $same_key_i ++;
-                        $new_k = $k.'_'.$same_key_i;
+                        $same_key_i++;
+                        $new_k = $k . '_' . $same_key_i;
                     }
-                    $ar_sql[self::OR_OP] = array_map(function($value) use ($k, $new_k) {
+                    $ar_sql[self::OR_OP] = array_map(function ($value) use ($k, $new_k) {
                         return str_replace($k, $new_k, $value);
                     }, $ar_sql[self::OR_OP]);
                     $ar_values[$new_k] = $v;
                 }
                 continue;
             }
-            $bind_key = ':'.$key;
+            $bind_key = ':' . $key;
             if (!is_array($value)) {
                 $ar_sql[self::AND_OP][] = "`{$key}`={$bind_key}";
                 $ar_values[$bind_key] = $value;
@@ -440,8 +442,8 @@ class MyPDO
                     continue;
                 }
                 if (isset($ar_values[$bind_key])) {
-                    $same_key_i ++;
-                    $bind_key .= '_'.$same_key_i;
+                    $same_key_i++;
+                    $bind_key .= '_' . $same_key_i;
                 }
                 switch ($ke) {
                     case 'in':
@@ -452,19 +454,19 @@ class MyPDO
                         $in_i = 0;
                         $in_params = [];
                         foreach ($val as $va) {
-                            $in_i ++;
-                            $in_bind_key = ":".$same_key_i.$in_i;
+                            $in_i++;
+                            $in_bind_key = ":" . $same_key_i . $in_i;
                             $in_params[$in_bind_key] = $va;
                             $ar_values[$in_bind_key] = $va;
                         }
-                        $ar_sql[self::AND_OP][] = "`{$key}` ".strtoupper($ke)." (".implode(',', array_keys($in_params)).")";
+                        $ar_sql[self::AND_OP][] = "`{$key}` " . strtoupper($ke) . " (" . implode(',', array_keys($in_params)) . ")";
                         break 1;
                     case 'like':
                     case 'not like':
                         if (is_array($val) || empty($val)) {
                             break;
                         }
-                        $ar_sql[self::AND_OP][] = "`{$key}` ".strtoupper($ke).' '.$bind_key;
+                        $ar_sql[self::AND_OP][] = "`{$key}` " . strtoupper($ke) . ' ' . $bind_key;
                         $ar_values[$bind_key] = $val;
                         break;
                     default:
@@ -510,10 +512,10 @@ class MyPDO
         if ($ret === false) {
             return false;
         }
-        $str_sql = isset($ret['bind_where_sql'][self::AND_OP]) ? implode(' '.self::AND_OP.' ', $ret['bind_where_sql'][self::AND_OP]) : '';
+        $str_sql = isset($ret['bind_where_sql'][self::AND_OP]) ? implode(' ' . self::AND_OP . ' ', $ret['bind_where_sql'][self::AND_OP]) : '';
         if (isset($ret['bind_where_sql'][self::OR_OP])) {
-            $or_sql = implode(" ".self::OR_OP." ", $ret['bind_where_sql'][self::OR_OP]);
-            $str_sql .= $str_sql ? " ".self::AND_OP." ({$or_sql})" : $or_sql;
+            $or_sql = implode(" " . self::OR_OP . " ", $ret['bind_where_sql'][self::OR_OP]);
+            $str_sql .= $str_sql ? " " . self::AND_OP . " ({$or_sql})" : $or_sql;
         }
         return [
             'where_sql' => $str_sql,
@@ -523,7 +525,7 @@ class MyPDO
 
     private function formatField(array $field)
     {
-        return $field ? '`'.implode('`,`', $field).'`' : self::DEFAULT_SELECT_FIELD;
+        return $field ? '`' . implode('`,`', $field) . '`' : self::DEFAULT_SELECT_FIELD;
     }
 
     private function formatOrder(array $order)
@@ -533,7 +535,7 @@ class MyPDO
         }
         $str_order = ' ORDER BY ';
         foreach ($order as $key => $value) {
-            $str_order .= $key." ".strtoupper($value).",";
+            $str_order .= $key . " " . strtoupper($value) . ",";
         }
         return substr($str_order, 0, -1);
     }

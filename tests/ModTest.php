@@ -1,14 +1,15 @@
 <?php
-include_once '../vendor/autoload.php';
+require_once "../src/MyPDO.php";
+require_once "../src/PDOConnect.php";
 
 use Rean\MyPDO;
 
 class ModTest extends MyPDO
 {
-    protected static $database = 'd_test_?';
-    protected static $table = 't_test_???';
+    protected static $database = 'test';
+    protected static $table = 't_test';
     protected static $hash_key = null;
-    protected static $cluster = 'i_test';
+    protected static $cluster = 'single';
     protected static $data_format = [
         'id' => self::FIELD_INT,
         'name' => self::FIELD_STRING,
@@ -87,12 +88,30 @@ class ModTest extends MyPDO
         self::$hash_key = 'a';
         return parent::exec($sql, $params);
     }
+
+    public function getDbConf()
+    {
+        return [
+            'a' => [
+                'dsn' => 'mysql:host=127.0.0.1;port=3306;charset=utf8mb4',
+                'user' => 'root',
+                'password' => 'reaburoa'
+            ],
+            'b' => [
+                'dsn' => 'mysql:host=127.0.0.1;port=3306;charset=utf8mb4',
+                'user' => 'root',
+                'password' => 'reaburoa'
+            ],
+            'test' => 'a|b|a|b',
+            'single' => 'a'
+        ];
+    }
 }
 
 $mod = new ModTest();
 #$ret = $mod->insert(['phone' => rand(100000, 1000000), 'name' => '姓名'.rand(88, 10000), 'age' => rand(1, 99)]);
 #$ret = $mod->update(['name' => 'test', 'age' => 19], ['name' => 'test_zhanglei', 'age' => 29]);
-$page = $_GET['page'];
+$page = 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 $ret = $mod->getAll(['or' => ['name' => ['like' => '%test%'], 'id' => ['in' => [56, 57]]]], ['id' => 'desc'], $offset, $limit);
@@ -101,6 +120,5 @@ $ret = $mod->getAll(['or' => ['name' => ['like' => '%test%'], 'id' => ['in' => [
 #$ret = $mod->increment(['age' => 1, 'age_1' => 3], ['id' => 6]);
 #$ret = $mod->query('', [':id' => 12]);
 #$ret = $mod->exec("update d_test_0.t_test_0cc set age=:age where id=:id", [':age' => 19, ':id' => 5]);
-echo '<pre>';
-print_r($ret);
-echo '</pre>';
+
+var_dump($ret);

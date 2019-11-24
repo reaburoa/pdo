@@ -52,14 +52,14 @@ class PDOConnect
      * @throws \Exception when cluster is false
      * @return self
      */
-    public static function getInstance($cluster, $hash = '')
+    public static function getInstance(array $db_conf, $cluster, $hash = '')
     {
-        if (!$cluster) {
+        if (empty($db_conf) || !$cluster) {
             throw new \Exception('Params cluster must be provide');
         }
         $key = $hash ? md5($cluster.substr($hash, 0, 1)) : md5($cluster);
         if (!self::$instance || !isset(self::$instance[$key])) {
-            self::$instance[$key] = new self($cluster, $hash);
+            self::$instance[$key] = new self($db_conf, $cluster, $hash);
         }
 
         return self::$instance[$key];
@@ -70,13 +70,14 @@ class PDOConnect
      * @param mixed $hash 散列规则
      * @throws \Exception when cluster is false
      */
-    public function __construct($cluster, $hash = '')
+    public function __construct(array $db_conf, $cluster, $hash = '')
     {
-        if (!$cluster) {
+        if (empty($db_conf) || !$cluster) {
             throw new \Exception('Params cluster must be provided');
         }
         self::$cluster = $cluster;
         self::$hash = $hash;
+        self::$origin_conf = $db_conf;
     }
 
     /**
@@ -87,7 +88,7 @@ class PDOConnect
     {
         $key = self::$hash ? md5(self::$cluster.substr(self::$hash, 0, 1)) : md5(self::$cluster);
         if (!self::$pdo || !isset(self::$pdo[$key])) {
-            $conf = self::getConf();
+            $conf = self::getConf(self::$origin_conf);
             if (!$conf || !is_array($conf)) {
                 throw new \Exception('The conf is error');
             }
@@ -107,19 +108,19 @@ class PDOConnect
     /**
      * get database conf
      */
-    private static function getConf()
+    private static function getConf($db_conf)
     {
-        if (empty(self::$origin_conf)) {
-            self::$origin_conf = require_once(dirname(dirname(dirname(dirname(dirname(__FILE__))))).'/conf/database.php');
+        if (empty($db_conf)) {
+            throw new \Exception("Cannot Get Database Conf");
         }
-        if (!isset(self::$origin_conf[self::$cluster])) {
+        if (!isset($db_conf[self::$cluster])) {
             throw new \Exception("Conf has no ".self::$cluster." cluster");
         }
-        if (strpos(self::$origin_conf[self::$cluster], self::$conf_separator) === false) {
-            $ret = self::$origin_conf[self::$origin_conf[self::$cluster]];
+        if (strpos($db_conf[self::$cluster], self::$conf_separator) === false) {
+            $ret = $db_conf[$db_conf[self::$cluster]];
         } else {
-            $hash = self::hashCluster(self::$origin_conf[self::$cluster], self::$hash);
-            $ret = self::$origin_conf[$hash];
+            $hash = self::hashCluster($db_conf[self::$cluster], self::$hash);
+            $ret = $db_conf[$hash];
         }
         return $ret;
     }
